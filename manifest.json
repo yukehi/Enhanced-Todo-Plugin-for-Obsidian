@@ -1,0 +1,9 @@
+{
+  "id": "enhanced-todo",
+  "name": "Enhanced Todo",
+  "version": "1.0.0",
+  "minAppVersion": "1.4.0",
+  "description": "Manage todos with smart priority assignment, advanced scheduling, and intelligent task breakdown analysis.",
+  "author": "aleksey zgeria",
+  "isDesktopOnly": false
+}
