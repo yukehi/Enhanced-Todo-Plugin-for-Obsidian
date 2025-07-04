@@ -5,6 +5,418 @@
   font-family: var(--font-interface);
 }
 
+/* Settings Tab Styles */
+.setting-item-description {
+  color: var(--text-muted);
+  font-size: 13px;
+  margin-bottom: 12px;
+  line-height: 1.4;
+}
+
+/* Day Settings Container */
+.day-settings-container {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 16px;
+  margin: 16px 0;
+}
+
+.day-setting-group {
+  background: var(--background-secondary);
+  border-radius: 8px;
+  padding: 16px;
+  border: 1px solid var(--background-modifier-border);
+}
+
+.day-header {
+  margin: 0 0 12px 0;
+  color: var(--text-normal);
+  font-size: 14px;
+  font-weight: 600;
+  border-bottom: 1px solid var(--background-modifier-border);
+  padding-bottom: 8px;
+}
+
+.time-settings {
+  margin-top: 12px;
+  padding-left: 16px;
+  border-left: 3px solid var(--interactive-accent);
+}
+
+.work-hours-info {
+  margin-top: 8px;
+  padding: 6px 12px;
+  background: var(--background-primary);
+  border-radius: 4px;
+  border: 1px solid var(--background-modifier-border);
+}
+
+.work-hours-display {
+  font-size: 12px;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+/* Custom Schedule Management */
+.custom-schedule-container {
+  margin: 16px 0;
+}
+
+.custom-schedule-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 12px;
+  margin: 4px 0;
+  background: var(--background-secondary);
+  border-radius: 4px;
+  border: 1px solid var(--background-modifier-border);
+}
+
+.schedule-info {
+  flex: 1;
+}
+
+.schedule-info strong {
+  color: var(--text-normal);
+  margin-right: 8px;
+}
+
+.add-custom-schedule {
+  background: var(--background-secondary);
+  border-radius: 8px;
+  padding: 16px;
+  margin: 12px 0;
+  border: 1px solid var(--background-modifier-border);
+}
+
+/* UI Preview Container */
+.ui-preview-container {
+  background: var(--background-secondary);
+  border-radius: 8px;
+  padding: 16px;
+  margin: 16px 0;
+  border: 1px solid var(--background-modifier-border);
+}
+
+.preview-task-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px;
+  background: var(--background-primary);
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 6px;
+  transition: all 0.2s ease;
+  border-left: 4px solid #ff4757;
+}
+
+.preview-task-item .task-checkbox {
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.preview-task-item .task-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.preview-task-item .task-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+  flex-wrap: wrap;
+}
+
+.preview-task-item .task-title > span:first-child {
+  font-weight: 500;
+  color: var(--text-normal);
+  flex: 1;
+  min-width: 0;
+}
+
+.preview-task-item .task-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.preview-task-item .task-actions button {
+  background: var(--background-secondary);
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 3px;
+  padding: 4px 6px;
+  cursor: pointer;
+  font-size: 12px;
+  color: var(--text-muted);
+  min-width: 28px;
+  text-align: center;
+}
+
+/* Export/Import Actions */
+.export-import-actions {
+  background: var(--background-secondary);
+  border-radius: 8px;
+  padding: 16px;
+  margin: 16px 0;
+  border: 1px solid var(--background-modifier-border);
+}
+
+.export-preview,
+.import-info,
+.backup-preview,
+.restore-info {
+  background: var(--background-primary);
+  border-radius: 6px;
+  padding: 12px;
+  margin: 12px 0;
+  border: 1px solid var(--interactive-accent);
+  border-left: 4px solid var(--interactive-accent);
+}
+
+.export-preview h4,
+.import-info h4,
+.backup-preview h4,
+.restore-info h4 {
+  margin: 0 0 8px 0;
+  color: var(--interactive-accent);
+  font-size: 14px;
+}
+
+.backup-restore-actions {
+  background: var(--background-secondary);
+  border-radius: 8px;
+  padding: 16px;
+  margin: 16px 0;
+  border: 1px solid var(--background-modifier-border);
+}
+
+/* Compact Mode Styles */
+.compact-mode .setting-item {
+  padding: 8px 0;
+}
+
+.compact-mode .day-setting-group {
+  padding: 12px;
+}
+
+.compact-mode .time-settings {
+  margin-top: 8px;
+  padding-left: 12px;
+}
+
+.compact-mode .preview-task-item {
+  padding: 8px;
+  gap: 8px;
+}
+
+.compact-mode .ui-preview-container {
+  padding: 12px;
+}
+
+.compact-mode .export-import-actions,
+.compact-mode .backup-restore-actions {
+  padding: 12px;
+}
+
+/* Animation Styles */
+.animations-enabled .setting-item {
+  transition: all 0.2s ease;
+}
+
+.animations-enabled .day-setting-group {
+  transition: all 0.3s ease;
+}
+
+.animations-enabled .day-setting-group:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.animations-enabled .preview-task-item {
+  transition: all 0.2s ease;
+}
+
+.animations-enabled .preview-task-item:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.animations-enabled button {
+  transition: all 0.2s ease;
+}
+
+.animations-enabled button:hover {
+  transform: translateY(-1px);
+}
+
+.animations-enabled .custom-schedule-item {
+  transition: all 0.2s ease;
+}
+
+.animations-enabled .custom-schedule-item:hover {
+  background: var(--background-modifier-hover);
+}
+
+/* Settings Section Headers */
+.setting-item h1 {
+  color: var(--text-normal);
+  font-size: 24px;
+  font-weight: 600;
+  margin: 0 0 8px 0;
+  border-bottom: 2px solid var(--interactive-accent);
+  padding-bottom: 8px;
+}
+
+.setting-item h2 {
+  color: var(--text-normal);
+  font-size: 18px;
+  font-weight: 600;
+  margin: 24px 0 16px 0;
+  border-bottom: 1px solid var(--background-modifier-border);
+  padding-bottom: 6px;
+}
+
+.setting-item h3 {
+  color: var(--text-normal);
+  font-size: 16px;
+  font-weight: 500;
+  margin: 20px 0 12px 0;
+}
+
+.setting-item h4 {
+  color: var(--text-normal);
+  font-size: 14px;
+  font-weight: 500;
+  margin: 16px 0 8px 0;
+}
+
+/* Improved Setting Items */
+.setting-item {
+  border-bottom: 1px solid var(--background-modifier-border-focus);
+  padding: 12px 0;
+}
+
+.setting-item:last-child {
+  border-bottom: none;
+}
+
+.setting-item-info {
+  margin-bottom: 8px;
+}
+
+.setting-item-name {
+  font-weight: 500;
+  color: var(--text-normal);
+  margin-bottom: 4px;
+}
+
+.setting-item-description {
+  color: var(--text-muted);
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+/* Button Improvements */
+.setting-item button {
+  transition: all 0.2s ease;
+}
+
+.setting-item button:hover {
+  background: var(--interactive-accent-hover);
+}
+
+.setting-item button.mod-cta {
+  background: var(--interactive-accent);
+  color: var(--text-on-accent);
+}
+
+.setting-item button.mod-warning {
+  background: var(--text-error);
+  color: var(--text-on-accent);
+}
+
+.setting-item button.mod-warning:hover {
+  background: var(--text-error);
+  opacity: 0.8;
+}
+
+/* Dropdown Improvements */
+.setting-item select {
+  background: var(--background-primary);
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 4px;
+  padding: 6px 8px;
+  color: var(--text-normal);
+  font-size: 13px;
+}
+
+.setting-item select:focus {
+  border-color: var(--interactive-accent);
+  outline: none;
+}
+
+/* Slider Improvements */
+.setting-item input[type="range"] {
+  width: 100%;
+  margin: 8px 0;
+}
+
+/* Text Input Improvements */
+.setting-item input[type="text"] {
+  background: var(--background-primary);
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 4px;
+  padding: 6px 8px;
+  color: var(--text-normal);
+  font-size: 13px;
+  width: 100%;
+}
+
+.setting-item input[type="text"]:focus {
+  border-color: var(--interactive-accent);
+  outline: none;
+}
+
+.setting-item input[type="text"]::placeholder {
+  color: var(--text-muted);
+}
+
+/* Toggle Improvements */
+.setting-item .checkbox-container {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Debug Information Styles */
+details {
+  margin: 12px 0;
+}
+
+details summary {
+  cursor: pointer;
+  padding: 8px;
+  background: var(--background-secondary);
+  border-radius: 4px;
+  border: 1px solid var(--background-modifier-border);
+  font-weight: 500;
+  color: var(--text-normal);
+}
+
+details summary:hover {
+  background: var(--background-modifier-hover);
+}
+
+details pre {
+  margin: 8px 0 0 0;
+  font-family: var(--font-monospace);
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
+
 .enhanced-todo-header {
   display: flex;
   justify-content: space-between;

@@ -1,5 +1,5 @@
 import { App, Plugin, PluginManifest, TFile, WorkspaceLeaf, Notice } from 'obsidian';
-import { VIEW_TYPE_TODO } from './constants';
+import { VIEW_TYPE_TODO, TaskPriority, TaskBreakdownSuggestion } from './constants';
 import { EnhancedTodoItem } from './models/EnhancedTodoItem';
 import { TodoPluginSettings, DEFAULT_SETTINGS, WeeklyScheduleManager } from './models/TodoPluginSettings';
 import { EnhancedTodoParser } from './parsers/EnhancedTodoParser';
@@ -244,6 +244,8 @@ export default class EnhancedTodoPlugin extends Plugin {
   }
 
   private async checkNewTasksForIssues(todos: EnhancedTodoItem[]): Promise<void> {
+    if (!this.settings.enableTaskBreakdownAnalysis) return;
+    
     const problematicTasks = todos.filter(todo => 
       TaskSuitabilityAnalyzer.needsImmediateBreakdown(todo)
     );
@@ -327,7 +329,7 @@ export default class EnhancedTodoPlugin extends Plugin {
     return this.getAllTodos().filter(todo => !todo.isAssignedToday && !todo.isCompleted);
   }
 
-  public getTasksByPriority(priority: any): EnhancedTodoItem[] {
+  public getTasksByPriority(priority: TaskPriority): EnhancedTodoItem[] {
     return this.getAllTodos().filter(todo => todo.priority === priority && !todo.isCompleted);
   }
 
@@ -426,7 +428,7 @@ export default class EnhancedTodoPlugin extends Plugin {
     return TaskSuitabilityAnalyzer.autoFixSimpleIssues(todo);
   }
 
-  public getBreakdownSuggestions(todo: EnhancedTodoItem): any[] {
+  public getBreakdownSuggestions(todo: EnhancedTodoItem): TaskBreakdownSuggestion[] {
     return TaskSuitabilityAnalyzer.suggestBreakdown(todo);
   }
 }

@@ -58,15 +58,11 @@ export enum RecommendedAction {
   NO_ACTION_NEEDED = 'none'
 }
 
-// Default settings
-export const DEFAULT_SETTINGS = {
-  dateFormat: 'yyyy-MM-dd',
-  dateTagFormat: '#%date%',
-  openFilesInNewLeaf: false,
-  enableAutoPriority: true,
-  enableRescheduleWarnings: true,
-  rescheduleWarningThreshold: RESCHEDULE_WARNING_THRESHOLD,
-  defaultEndOfDay: '22:00',
-  defaultStartOfDay: '08:00',
-  enableWeekendWork: false
-};
+// Task breakdown suggestion interface
+export interface TaskBreakdownSuggestion {
+  title: string;
+  priority: TaskPriority;
+  estimatedTime: number;
+  reasoning: string;
+  subtasks: string[];
+}
