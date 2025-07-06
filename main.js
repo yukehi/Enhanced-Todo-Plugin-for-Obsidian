@@ -6718,6 +6718,21 @@ var init_datetime = __esm({
 });
 
 // node_modules/luxon/src/luxon.js
+var luxon_exports = {};
+__export(luxon_exports, {
+  DateTime: () => DateTime,
+  Duration: () => Duration,
+  FixedOffsetZone: () => FixedOffsetZone,
+  IANAZone: () => IANAZone,
+  Info: () => Info,
+  Interval: () => Interval,
+  InvalidZone: () => InvalidZone,
+  Settings: () => Settings,
+  SystemZone: () => SystemZone,
+  VERSION: () => VERSION,
+  Zone: () => Zone
+});
+var VERSION;
 var init_luxon = __esm({
   "node_modules/luxon/src/luxon.js"() {
     init_datetime();
@@ -6730,6 +6745,7 @@ var init_luxon = __esm({
     init_invalidZone();
     init_systemZone();
     init_settings();
+    VERSION = "3.6.1";
   }
 });
 
@@ -8113,13 +8129,11 @@ var EnhancedTodoView = class extends import_obsidian.ItemView {
             this.plugin.openTaskFile(task);
           };
         });
-        if (!task.isAssignedToday) {
-          actions.createEl("button", { text: "\u{1F4C5}", title: "Assign to today" }, (btn) => {
-            btn.onclick = () => {
-              this.plugin.assignTaskToToday(task);
-            };
-          });
-        }
+        actions.createEl("button", { text: "\u{1F4C5}", title: "Schedule task" }, (btn) => {
+          btn.onclick = () => {
+            this.showDateAssignmentModal(task);
+          };
+        });
         actions.createEl("button", { text: "\u270F\uFE0F", title: "Edit task" }, (btn) => {
           btn.onclick = () => {
             this.plugin.openTaskFile(task);
@@ -8157,19 +8171,23 @@ var EnhancedTodoView = class extends import_obsidian.ItemView {
   }
   getFilteredTasks() {
     let tasks = [];
+    const settings = this.plugin.getSettings();
     switch (this.currentFilter) {
       case "today":
-        tasks = this.plugin.getTodaysAssignedTasks();
+        tasks = this.plugin.getAllTodos().filter((t) => t.isAssignedToday);
         break;
       case "scheduled":
-        tasks = this.plugin.getAllTodos().filter((t) => t.assignedDate && !t.isAssignedToday && !t.isCompleted);
+        tasks = this.plugin.getAllTodos().filter((t) => t.assignedDate && !t.isAssignedToday);
         break;
       case "inbox":
-        tasks = this.plugin.getUnassignedTasks();
+        tasks = this.plugin.getAllTodos().filter((t) => !t.isAssignedToday && !t.assignedDate);
         break;
       case "all":
-        tasks = this.plugin.getAllTodos().filter((t) => !t.isCompleted);
+        tasks = this.plugin.getAllTodos();
         break;
+    }
+    if (!settings.showCompletedTasks) {
+      tasks = tasks.filter((t) => !t.isCompleted);
     }
     if (this.currentPriorityFilter !== "all") {
       tasks = tasks.filter((t) => t.priority === this.currentPriorityFilter);
@@ -8212,6 +8230,138 @@ var EnhancedTodoView = class extends import_obsidian.ItemView {
         modal.remove();
       };
     });
+  }
+  showDateAssignmentModal(task) {
+    const overlay = this.containerEl.createDiv("date-assignment-overlay");
+    overlay.style.position = "fixed";
+    overlay.style.top = "0";
+    overlay.style.left = "0";
+    overlay.style.width = "100%";
+    overlay.style.height = "100%";
+    overlay.style.backgroundColor = "rgba(0, 0, 0, 0.5)";
+    overlay.style.zIndex = "1000";
+    overlay.style.display = "flex";
+    overlay.style.alignItems = "center";
+    overlay.style.justifyContent = "center";
+    const modal = overlay.createDiv("date-assignment-modal");
+    modal.style.backgroundColor = "var(--background-primary)";
+    modal.style.border = "1px solid var(--background-modifier-border)";
+    modal.style.borderRadius = "8px";
+    modal.style.padding = "20px";
+    modal.style.minWidth = "350px";
+    modal.style.maxWidth = "500px";
+    modal.style.boxShadow = "0 8px 32px rgba(0, 0, 0, 0.2)";
+    const header = modal.createEl("h3", { text: `\u{1F4C5} Schedule Task` });
+    header.style.margin = "0 0 16px 0";
+    header.style.color = "var(--text-normal)";
+    const taskInfo = modal.createEl("p", { text: `Task: ${task.title}` });
+    taskInfo.style.margin = "0 0 20px 0";
+    taskInfo.style.color = "var(--text-muted)";
+    taskInfo.style.fontSize = "14px";
+    const quickSection = modal.createDiv("quick-options");
+    const quickHeader = quickSection.createEl("h4", { text: "Quick Options" });
+    quickHeader.style.margin = "0 0 12px 0";
+    quickHeader.style.color = "var(--text-normal)";
+    quickHeader.style.fontSize = "16px";
+    const quickButtonsContainer = quickSection.createDiv("quick-buttons");
+    quickButtonsContainer.style.display = "grid";
+    quickButtonsContainer.style.gridTemplateColumns = "repeat(2, 1fr)";
+    quickButtonsContainer.style.gap = "8px";
+    quickButtonsContainer.style.marginBottom = "20px";
+    const quickOptions = [
+      { label: "\u{1F4C5} Today", days: 0 },
+      { label: "\u{1F305} Tomorrow", days: 1 },
+      { label: "\u{1F4C6} Next Week", days: 7 },
+      { label: "\u{1F4C5} Next Month", days: 30 }
+    ];
+    quickOptions.forEach((option) => {
+      const btn = quickButtonsContainer.createEl("button", { text: option.label });
+      btn.style.padding = "8px 12px";
+      btn.style.border = "1px solid var(--background-modifier-border)";
+      btn.style.borderRadius = "4px";
+      btn.style.backgroundColor = "var(--background-secondary)";
+      btn.style.color = "var(--text-normal)";
+      btn.style.cursor = "pointer";
+      btn.style.fontSize = "13px";
+      btn.onmouseover = () => {
+        btn.style.backgroundColor = "var(--background-modifier-hover)";
+      };
+      btn.onmouseout = () => {
+        btn.style.backgroundColor = "var(--background-secondary)";
+      };
+      btn.onclick = () => {
+        const targetDate = new Date();
+        targetDate.setDate(targetDate.getDate() + option.days);
+        this.assignTaskToDate(task, targetDate);
+        overlay.remove();
+      };
+    });
+    const customSection = modal.createDiv("custom-date");
+    const customHeader = customSection.createEl("h4", { text: "Custom Date" });
+    customHeader.style.margin = "0 0 12px 0";
+    customHeader.style.color = "var(--text-normal)";
+    customHeader.style.fontSize = "16px";
+    const dateInput = customSection.createEl("input", { type: "date" });
+    dateInput.style.width = "100%";
+    dateInput.style.padding = "8px";
+    dateInput.style.border = "1px solid var(--background-modifier-border)";
+    dateInput.style.borderRadius = "4px";
+    dateInput.style.backgroundColor = "var(--background-primary)";
+    dateInput.style.color = "var(--text-normal)";
+    dateInput.style.marginBottom = "20px";
+    const today = new Date();
+    dateInput.value = today.toISOString().split("T")[0];
+    const actionsContainer = modal.createDiv("modal-actions");
+    actionsContainer.style.display = "flex";
+    actionsContainer.style.gap = "12px";
+    actionsContainer.style.justifyContent = "flex-end";
+    const cancelBtn = actionsContainer.createEl("button", { text: "Cancel" });
+    cancelBtn.style.padding = "8px 16px";
+    cancelBtn.style.border = "1px solid var(--background-modifier-border)";
+    cancelBtn.style.borderRadius = "4px";
+    cancelBtn.style.backgroundColor = "var(--background-secondary)";
+    cancelBtn.style.color = "var(--text-normal)";
+    cancelBtn.style.cursor = "pointer";
+    cancelBtn.onclick = () => {
+      overlay.remove();
+    };
+    const assignBtn = actionsContainer.createEl("button", { text: "Assign Date" });
+    assignBtn.style.padding = "8px 16px";
+    assignBtn.style.border = "none";
+    assignBtn.style.borderRadius = "4px";
+    assignBtn.style.backgroundColor = "var(--interactive-accent)";
+    assignBtn.style.color = "var(--text-on-accent)";
+    assignBtn.style.cursor = "pointer";
+    assignBtn.style.fontWeight = "500";
+    assignBtn.onclick = () => {
+      const selectedDate = new Date(dateInput.value);
+      this.assignTaskToDate(task, selectedDate);
+      overlay.remove();
+    };
+    overlay.onclick = (e) => {
+      if (e.target === overlay) {
+        overlay.remove();
+      }
+    };
+    const handleEscape = (e) => {
+      if (e.key === "Escape") {
+        overlay.remove();
+        document.removeEventListener("keydown", handleEscape);
+      }
+    };
+    document.addEventListener("keydown", handleEscape);
+  }
+  async assignTaskToDate(task, date) {
+    try {
+      await this.plugin.assignTaskToDate(task, date);
+      const dateStr = date.toLocaleDateString();
+      const isToday = date.toDateString() === new Date().toDateString();
+      const dateLabel = isToday ? "today" : dateStr;
+      new window.Notice(`Task scheduled for ${dateLabel}: ${task.title}`);
+    } catch (error) {
+      console.error("Error assigning task to date:", error);
+      new window.Notice("Failed to schedule task");
+    }
   }
 };
 
@@ -8892,12 +9042,12 @@ var EnhancedTodoPlugin = class extends import_obsidian3.Plugin {
     try {
       const content = await this.app.vault.cachedRead(file);
       const todos = await this.todoParser.parseEnhancedTodosInFile(file, content);
-      const filteredTodos = this.settings.showCompletedTasks ? todos : todos.filter((todo) => !todo.isCompleted);
-      this.todos.set(file.path, filteredTodos);
+      this.todos.set(file.path, todos);
       if (this.settings.enableTaskBreakdownAnalysis) {
-        await this.checkNewTasksForIssues(filteredTodos);
+        const incompleteTodos = todos.filter((todo) => !todo.isCompleted);
+        await this.checkNewTasksForIssues(incompleteTodos);
       }
-      return filteredTodos;
+      return todos;
     } catch (error) {
       console.error(`Error parsing todos from ${file.path}:`, error);
       return [];
@@ -8976,8 +9126,10 @@ var EnhancedTodoPlugin = class extends import_obsidian3.Plugin {
   }
   async toggleTaskStatus(todo) {
     const file = this.app.vault.getAbstractFileByPath(todo.sourceFilePath);
-    if (!file)
+    if (!file) {
+      new import_obsidian3.Notice("File not found for task");
       return;
+    }
     try {
       const content = await this.app.vault.read(file);
       const lines = content.split("\n");
@@ -8992,10 +9144,21 @@ var EnhancedTodoPlugin = class extends import_obsidian3.Plugin {
         } else {
           todo.markCompleted();
         }
+        await this.parseFileForTodos(file);
+        this.updateView();
+        const statusText = todo.isCompleted ? "completed" : "reopened";
+        new import_obsidian3.Notice(`Task ${statusText}: ${todo.title}`);
+      } else {
+        new import_obsidian3.Notice("Task line not found in file");
       }
     } catch (error) {
       console.error("Error toggling task status:", error);
       new import_obsidian3.Notice("Failed to update task status");
+      if (todo.isCompleted) {
+        todo.markTodo();
+      } else {
+        todo.markCompleted();
+      }
     }
   }
   async openTaskFile(todo) {
@@ -9027,6 +9190,35 @@ var EnhancedTodoPlugin = class extends import_obsidian3.Plugin {
       new import_obsidian3.Notice("Failed to assign task to today");
     }
     this.updateView();
+  }
+  async assignTaskToDate(todo, date) {
+    const { DateTime: DateTime2 } = await Promise.resolve().then(() => (init_luxon(), luxon_exports));
+    const luxonDate = DateTime2.fromJSDate(date);
+    todo.assignToDate(luxonDate);
+    const file = this.app.vault.getAbstractFileByPath(todo.sourceFilePath);
+    if (!file) {
+      throw new Error("File not found for task");
+    }
+    try {
+      const content = await this.app.vault.read(file);
+      const lines = content.split("\n");
+      if (lines[todo.lineNumber]) {
+        const currentLine = lines[todo.lineNumber];
+        const dateStr = date.toISOString().split("T")[0];
+        const dateTag = this.settings.dateTagFormat.replace("%date%", dateStr);
+        const dateTagPattern = new RegExp(this.settings.dateTagFormat.replace("%date%", "\\d{4}-\\d{2}-\\d{2}"), "g");
+        const cleanedLine = currentLine.replace(dateTagPattern, "").trim();
+        lines[todo.lineNumber] = `${cleanedLine} ${dateTag}`;
+        await this.app.vault.modify(file, lines.join("\n"));
+        await this.parseFileForTodos(file);
+        this.updateView();
+      } else {
+        throw new Error("Task line not found in file");
+      }
+    } catch (error) {
+      console.error("Error assigning task to date:", error);
+      throw error;
+    }
   }
   getSettings() {
     return this.settings;

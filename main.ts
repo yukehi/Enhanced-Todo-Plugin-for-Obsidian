@@ -224,19 +224,17 @@ export default class EnhancedTodoPlugin extends Plugin {
       const content = await this.app.vault.cachedRead(file);
       const todos = await this.todoParser.parseEnhancedTodosInFile(file, content);
       
-      // Filter out completed todos if setting is disabled
-      const filteredTodos = this.settings.showCompletedTasks 
-        ? todos 
-        : todos.filter(todo => !todo.isCompleted);
+      // CRITICAL FIX: Store ALL todos in the map, don't filter here
+      // Filtering should only happen in the view layer
+      this.todos.set(file.path, todos);
       
-      this.todos.set(file.path, filteredTodos);
-      
-      // Check for new problematic tasks
+      // Check for new problematic tasks (only incomplete ones)
       if (this.settings.enableTaskBreakdownAnalysis) {
-        await this.checkNewTasksForIssues(filteredTodos);
+        const incompleteTodos = todos.filter(todo => !todo.isCompleted);
+        await this.checkNewTasksForIssues(incompleteTodos);
       }
       
-      return filteredTodos;
+      return todos;
     } catch (error) {
       console.error(`Error parsing todos from ${file.path}:`, error);
       return [];
@@ -335,7 +333,10 @@ export default class EnhancedTodoPlugin extends Plugin {
 
   public async toggleTaskStatus(todo: EnhancedTodoItem): Promise<void> {
     const file = this.app.vault.getAbstractFileByPath(todo.sourceFilePath) as TFile;
-    if (!file) return;
+    if (!file) {
+      new Notice('File not found for task');
+      return;
+    }
     
     try {
       const content = await this.app.vault.read(file);
@@ -349,16 +350,36 @@ export default class EnhancedTodoPlugin extends Plugin {
         
         await this.app.vault.modify(file, lines.join('\n'));
         
-        // Update todo status
+        // Update todo status in memory
         if (todo.isCompleted) {
           todo.markTodo();
         } else {
           todo.markCompleted();
         }
+        
+        // CRITICAL FIX: Re-parse the file to update the todos map
+        await this.parseFileForTodos(file);
+        
+        // CRITICAL FIX: Force view refresh
+        this.updateView();
+        
+        // Show success notification
+        const statusText = todo.isCompleted ? 'completed' : 'reopened';
+        new Notice(`Task ${statusText}: ${todo.title}`);
+        
+      } else {
+        new Notice('Task line not found in file');
       }
     } catch (error) {
       console.error('Error toggling task status:', error);
       new Notice('Failed to update task status');
+      
+      // Revert the todo status if file update failed
+      if (todo.isCompleted) {
+        todo.markTodo();
+      } else {
+        todo.markCompleted();
+      }
     }
   }
 
@@ -399,6 +420,53 @@ export default class EnhancedTodoPlugin extends Plugin {
     }
     
     this.updateView();
+  }
+
+  public async assignTaskToDate(todo: EnhancedTodoItem, date: Date): Promise<void> {
+    // Import DateTime from luxon for proper date handling
+    const { DateTime } = await import('luxon');
+    const luxonDate = DateTime.fromJSDate(date);
+    
+    // Update the todo item's assigned date
+    todo.assignToDate(luxonDate);
+    
+    // Update the file to add the date tag
+    const file = this.app.vault.getAbstractFileByPath(todo.sourceFilePath) as TFile;
+    if (!file) {
+      throw new Error('File not found for task');
+    }
+    
+    try {
+      const content = await this.app.vault.read(file);
+      const lines = content.split('\n');
+      
+      if (lines[todo.lineNumber]) {
+        const currentLine = lines[todo.lineNumber];
+        const dateStr = date.toISOString().split('T')[0];
+        const dateTag = this.settings.dateTagFormat.replace('%date%', dateStr);
+        
+        // Remove existing date tags first (if any)
+        const dateTagPattern = new RegExp(this.settings.dateTagFormat.replace('%date%', '\\d{4}-\\d{2}-\\d{2}'), 'g');
+        const cleanedLine = currentLine.replace(dateTagPattern, '').trim();
+        
+        // Add the new date tag
+        lines[todo.lineNumber] = `${cleanedLine} ${dateTag}`;
+        
+        await this.app.vault.modify(file, lines.join('\n'));
+        
+        // Re-parse the file to update the todos map
+        await this.parseFileForTodos(file);
+        
+        // Force view refresh
+        this.updateView();
+        
+      } else {
+        throw new Error('Task line not found in file');
+      }
+    } catch (error) {
+      console.error('Error assigning task to date:', error);
+      throw error;
+    }
   }
 
   public getSettings(): TodoPluginSettings {

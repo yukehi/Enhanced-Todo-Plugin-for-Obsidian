@@ -270,14 +270,12 @@ export class EnhancedTodoView extends ItemView {
           };
         });
         
-        // Assign to today button (if not already assigned)
-        if (!task.isAssignedToday) {
-          actions.createEl('button', { text: '📅', title: 'Assign to today' }, (btn) => {
-            btn.onclick = () => {
-              this.plugin.assignTaskToToday(task);
-            };
-          });
-        }
+        // Enhanced date assignment button
+        actions.createEl('button', { text: '📅', title: 'Schedule task' }, (btn) => {
+          btn.onclick = () => {
+            this.showDateAssignmentModal(task);
+          };
+        });
         
         // Edit button
         actions.createEl('button', { text: '✏️', title: 'Edit task' }, (btn) => {
@@ -324,20 +322,26 @@ export class EnhancedTodoView extends ItemView {
 
   private getFilteredTasks(): EnhancedTodoItem[] {
     let tasks: EnhancedTodoItem[] = [];
+    const settings = this.plugin.getSettings();
     
     switch (this.currentFilter) {
       case 'today':
-        tasks = this.plugin.getTodaysAssignedTasks();
+        tasks = this.plugin.getAllTodos().filter(t => t.isAssignedToday);
         break;
       case 'scheduled':
-        tasks = this.plugin.getAllTodos().filter(t => t.assignedDate && !t.isAssignedToday && !t.isCompleted);
+        tasks = this.plugin.getAllTodos().filter(t => t.assignedDate && !t.isAssignedToday);
         break;
       case 'inbox':
-        tasks = this.plugin.getUnassignedTasks();
+        tasks = this.plugin.getAllTodos().filter(t => !t.isAssignedToday && !t.assignedDate);
         break;
       case 'all':
-        tasks = this.plugin.getAllTodos().filter(t => !t.isCompleted);
+        tasks = this.plugin.getAllTodos();
         break;
+    }
+    
+    // CRITICAL FIX: Apply completed task filter based on settings
+    if (!settings.showCompletedTasks) {
+      tasks = tasks.filter(t => !t.isCompleted);
     }
     
     // Apply priority filter
@@ -392,5 +396,176 @@ export class EnhancedTodoView extends ItemView {
         modal.remove();
       };
     });
+  }
+
+  private showDateAssignmentModal(task: EnhancedTodoItem): void {
+    // Create modal overlay
+    const overlay = this.containerEl.createDiv('date-assignment-overlay');
+    overlay.style.position = 'fixed';
+    overlay.style.top = '0';
+    overlay.style.left = '0';
+    overlay.style.width = '100%';
+    overlay.style.height = '100%';
+    overlay.style.backgroundColor = 'rgba(0, 0, 0, 0.5)';
+    overlay.style.zIndex = '1000';
+    overlay.style.display = 'flex';
+    overlay.style.alignItems = 'center';
+    overlay.style.justifyContent = 'center';
+
+    // Create modal content
+    const modal = overlay.createDiv('date-assignment-modal');
+    modal.style.backgroundColor = 'var(--background-primary)';
+    modal.style.border = '1px solid var(--background-modifier-border)';
+    modal.style.borderRadius = '8px';
+    modal.style.padding = '20px';
+    modal.style.minWidth = '350px';
+    modal.style.maxWidth = '500px';
+    modal.style.boxShadow = '0 8px 32px rgba(0, 0, 0, 0.2)';
+
+    // Modal header
+    const header = modal.createEl('h3', { text: `📅 Schedule Task` });
+    header.style.margin = '0 0 16px 0';
+    header.style.color = 'var(--text-normal)';
+    
+    const taskInfo = modal.createEl('p', { text: `Task: ${task.title}` });
+    taskInfo.style.margin = '0 0 20px 0';
+    taskInfo.style.color = 'var(--text-muted)';
+    taskInfo.style.fontSize = '14px';
+
+    // Quick options section
+    const quickSection = modal.createDiv('quick-options');
+    const quickHeader = quickSection.createEl('h4', { text: 'Quick Options' });
+    quickHeader.style.margin = '0 0 12px 0';
+    quickHeader.style.color = 'var(--text-normal)';
+    quickHeader.style.fontSize = '16px';
+
+    const quickButtonsContainer = quickSection.createDiv('quick-buttons');
+    quickButtonsContainer.style.display = 'grid';
+    quickButtonsContainer.style.gridTemplateColumns = 'repeat(2, 1fr)';
+    quickButtonsContainer.style.gap = '8px';
+    quickButtonsContainer.style.marginBottom = '20px';
+
+    // Quick option buttons
+    const quickOptions = [
+      { label: '📅 Today', days: 0 },
+      { label: '🌅 Tomorrow', days: 1 },
+      { label: '📆 Next Week', days: 7 },
+      { label: '📅 Next Month', days: 30 }
+    ];
+
+    quickOptions.forEach(option => {
+      const btn = quickButtonsContainer.createEl('button', { text: option.label });
+      btn.style.padding = '8px 12px';
+      btn.style.border = '1px solid var(--background-modifier-border)';
+      btn.style.borderRadius = '4px';
+      btn.style.backgroundColor = 'var(--background-secondary)';
+      btn.style.color = 'var(--text-normal)';
+      btn.style.cursor = 'pointer';
+      btn.style.fontSize = '13px';
+      
+      btn.onmouseover = () => {
+        btn.style.backgroundColor = 'var(--background-modifier-hover)';
+      };
+      btn.onmouseout = () => {
+        btn.style.backgroundColor = 'var(--background-secondary)';
+      };
+      
+      btn.onclick = () => {
+        const targetDate = new Date();
+        targetDate.setDate(targetDate.getDate() + option.days);
+        this.assignTaskToDate(task, targetDate);
+        overlay.remove();
+      };
+    });
+
+    // Custom date section
+    const customSection = modal.createDiv('custom-date');
+    const customHeader = customSection.createEl('h4', { text: 'Custom Date' });
+    customHeader.style.margin = '0 0 12px 0';
+    customHeader.style.color = 'var(--text-normal)';
+    customHeader.style.fontSize = '16px';
+
+    const dateInput = customSection.createEl('input', { type: 'date' });
+    dateInput.style.width = '100%';
+    dateInput.style.padding = '8px';
+    dateInput.style.border = '1px solid var(--background-modifier-border)';
+    dateInput.style.borderRadius = '4px';
+    dateInput.style.backgroundColor = 'var(--background-primary)';
+    dateInput.style.color = 'var(--text-normal)';
+    dateInput.style.marginBottom = '20px';
+
+    // Set default to today
+    const today = new Date();
+    dateInput.value = today.toISOString().split('T')[0];
+
+    // Action buttons
+    const actionsContainer = modal.createDiv('modal-actions');
+    actionsContainer.style.display = 'flex';
+    actionsContainer.style.gap = '12px';
+    actionsContainer.style.justifyContent = 'flex-end';
+
+    // Cancel button
+    const cancelBtn = actionsContainer.createEl('button', { text: 'Cancel' });
+    cancelBtn.style.padding = '8px 16px';
+    cancelBtn.style.border = '1px solid var(--background-modifier-border)';
+    cancelBtn.style.borderRadius = '4px';
+    cancelBtn.style.backgroundColor = 'var(--background-secondary)';
+    cancelBtn.style.color = 'var(--text-normal)';
+    cancelBtn.style.cursor = 'pointer';
+    
+    cancelBtn.onclick = () => {
+      overlay.remove();
+    };
+
+    // Assign button
+    const assignBtn = actionsContainer.createEl('button', { text: 'Assign Date' });
+    assignBtn.style.padding = '8px 16px';
+    assignBtn.style.border = 'none';
+    assignBtn.style.borderRadius = '4px';
+    assignBtn.style.backgroundColor = 'var(--interactive-accent)';
+    assignBtn.style.color = 'var(--text-on-accent)';
+    assignBtn.style.cursor = 'pointer';
+    assignBtn.style.fontWeight = '500';
+    
+    assignBtn.onclick = () => {
+      const selectedDate = new Date(dateInput.value);
+      this.assignTaskToDate(task, selectedDate);
+      overlay.remove();
+    };
+
+    // Close modal when clicking overlay
+    overlay.onclick = (e) => {
+      if (e.target === overlay) {
+        overlay.remove();
+      }
+    };
+
+    // Handle escape key
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        overlay.remove();
+        document.removeEventListener('keydown', handleEscape);
+      }
+    };
+    document.addEventListener('keydown', handleEscape);
+  }
+
+  private async assignTaskToDate(task: EnhancedTodoItem, date: Date): Promise<void> {
+    try {
+      // Add the new assignTaskToDate method to the plugin
+      await this.plugin.assignTaskToDate(task, date);
+      
+      // Show success notification
+      const dateStr = date.toLocaleDateString();
+      const isToday = date.toDateString() === new Date().toDateString();
+      const dateLabel = isToday ? 'today' : dateStr;
+      
+      // Use Obsidian's Notice for notifications
+      new (window as any).Notice(`Task scheduled for ${dateLabel}: ${task.title}`);
+      
+    } catch (error) {
+      console.error('Error assigning task to date:', error);
+      new (window as any).Notice('Failed to schedule task');
+    }
   }
 }
