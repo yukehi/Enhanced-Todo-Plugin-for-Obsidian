@@ -1,4 +1,4 @@
-import { ItemView, WorkspaceLeaf } from 'obsidian';
+import { ItemView, WorkspaceLeaf, Notice } from 'obsidian';
 import { VIEW_TYPE_TODO, TaskPriority } from '../constants';
 import { EnhancedTodoItem } from '../models/EnhancedTodoItem';
 import { AutoPriorityAssigner } from '../services/AutoPriorityAssigner';
@@ -222,10 +222,19 @@ export class EnhancedTodoView extends ItemView {
             warning.createEl('span', { text: `⚠️ ${summary}` });
             
             warning.createEl('button', { text: '🔧 Auto-Fix' }, (btn) => {
-              btn.onclick = () => {
-                const result = this.plugin.getAutoFixSuggestions(task);
-                if (result.fixed) {
-                  this.render();
+              btn.onclick = async () => {
+                try {
+                  const result = this.plugin.getAutoFixSuggestions(task);
+                  if (result.fixed) {
+                    new Notice(`Auto-fixed ${result.changes.length} issue(s): ${result.changes.join(', ')}`);
+                    await this.plugin.parseAllTodos(); // Re-parse to get updated data
+                    this.render();
+                  } else {
+                    new Notice('No auto-fixable issues found for this task');
+                  }
+                } catch (error) {
+                  console.error('Error applying auto-fix:', error);
+                  new Notice('Failed to apply auto-fix');
                 }
               };
             });
@@ -263,8 +272,8 @@ export class EnhancedTodoView extends ItemView {
       
       // Actions
       el.createDiv('task-actions', (actions) => {
-        // Open file button
-        actions.createEl('button', { text: '📂', title: 'Open file' }, (btn) => {
+        // Edit task button (consolidated - opens file for editing)
+        actions.createEl('button', { text: '✏️ Edit', title: 'Edit task' }, (btn) => {
           btn.onclick = () => {
             this.plugin.openTaskFile(task);
           };
@@ -274,13 +283,6 @@ export class EnhancedTodoView extends ItemView {
         actions.createEl('button', { text: '📅', title: 'Schedule task' }, (btn) => {
           btn.onclick = () => {
             this.showDateAssignmentModal(task);
-          };
-        });
-        
-        // Edit button
-        actions.createEl('button', { text: '✏️', title: 'Edit task' }, (btn) => {
-          btn.onclick = () => {
-            this.plugin.openTaskFile(task);
           };
         });
       });
@@ -561,11 +563,11 @@ export class EnhancedTodoView extends ItemView {
       const dateLabel = isToday ? 'today' : dateStr;
       
       // Use Obsidian's Notice for notifications
-      new (window as any).Notice(`Task scheduled for ${dateLabel}: ${task.title}`);
+      new Notice(`Task scheduled for ${dateLabel}: ${task.title}`);
       
     } catch (error) {
       console.error('Error assigning task to date:', error);
-      new (window as any).Notice('Failed to schedule task');
+      new Notice('Failed to schedule task');
     }
   }
 }

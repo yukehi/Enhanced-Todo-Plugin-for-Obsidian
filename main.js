@@ -7442,7 +7442,7 @@ var EnhancedTodoParser = class {
       subtask.parentTaskId = todo.id;
     });
     todo.tags = basicData.tags;
-    const dueDate = this.extractDueDate(line);
+    const dueDate = await this.extractDueDate(line);
     if (dueDate) {
       todo.assignToDate(dueDate);
     }
@@ -7497,19 +7497,32 @@ var EnhancedTodoParser = class {
     return tagMatches || [];
   }
   // Extract due date from content
-  extractDueDate(content) {
+  async extractDueDate(content) {
     const dateTagPattern = this.dateTagFormat.replace("%date%", "([\\d\\-\\/]+)");
     const dateMatch = content.match(new RegExp(dateTagPattern));
     if (dateMatch) {
       try {
-        return dateMatch[1];
+        const { DateTime: DateTime2 } = await Promise.resolve().then(() => (init_luxon(), luxon_exports));
+        const dateStr = dateMatch[1];
+        const luxonDate = DateTime2.fromISO(dateStr);
+        if (luxonDate.isValid) {
+          return luxonDate;
+        }
       } catch (error) {
         console.warn("Failed to parse date:", dateMatch[1]);
       }
     }
     const standaloneDate = content.match(/\b(\d{4}-\d{2}-\d{2})\b/);
     if (standaloneDate) {
-      return standaloneDate[1];
+      try {
+        const { DateTime: DateTime2 } = await Promise.resolve().then(() => (init_luxon(), luxon_exports));
+        const luxonDate = DateTime2.fromISO(standaloneDate[1]);
+        if (luxonDate.isValid) {
+          return luxonDate;
+        }
+      } catch (error) {
+        console.warn("Failed to parse standalone date:", standaloneDate[1]);
+      }
     }
     return null;
   }
@@ -8090,10 +8103,19 @@ var EnhancedTodoView = class extends import_obsidian.ItemView {
             const summary = TaskSuitabilityAnalyzer.generateBreakdownSummary(task);
             warning.createEl("span", { text: `\u26A0\uFE0F ${summary}` });
             warning.createEl("button", { text: "\u{1F527} Auto-Fix" }, (btn) => {
-              btn.onclick = () => {
-                const result = this.plugin.getAutoFixSuggestions(task);
-                if (result.fixed) {
-                  this.render();
+              btn.onclick = async () => {
+                try {
+                  const result = this.plugin.getAutoFixSuggestions(task);
+                  if (result.fixed) {
+                    new import_obsidian.Notice(`Auto-fixed ${result.changes.length} issue(s): ${result.changes.join(", ")}`);
+                    await this.plugin.parseAllTodos();
+                    this.render();
+                  } else {
+                    new import_obsidian.Notice("No auto-fixable issues found for this task");
+                  }
+                } catch (error) {
+                  console.error("Error applying auto-fix:", error);
+                  new import_obsidian.Notice("Failed to apply auto-fix");
                 }
               };
             });
@@ -8124,7 +8146,7 @@ var EnhancedTodoView = class extends import_obsidian.ItemView {
         }
       });
       el.createDiv("task-actions", (actions) => {
-        actions.createEl("button", { text: "\u{1F4C2}", title: "Open file" }, (btn) => {
+        actions.createEl("button", { text: "\u270F\uFE0F Edit", title: "Edit task" }, (btn) => {
           btn.onclick = () => {
             this.plugin.openTaskFile(task);
           };
@@ -8132,11 +8154,6 @@ var EnhancedTodoView = class extends import_obsidian.ItemView {
         actions.createEl("button", { text: "\u{1F4C5}", title: "Schedule task" }, (btn) => {
           btn.onclick = () => {
             this.showDateAssignmentModal(task);
-          };
-        });
-        actions.createEl("button", { text: "\u270F\uFE0F", title: "Edit task" }, (btn) => {
-          btn.onclick = () => {
-            this.plugin.openTaskFile(task);
           };
         });
       });
@@ -8357,10 +8374,10 @@ var EnhancedTodoView = class extends import_obsidian.ItemView {
       const dateStr = date.toLocaleDateString();
       const isToday = date.toDateString() === new Date().toDateString();
       const dateLabel = isToday ? "today" : dateStr;
-      new window.Notice(`Task scheduled for ${dateLabel}: ${task.title}`);
+      new import_obsidian.Notice(`Task scheduled for ${dateLabel}: ${task.title}`);
     } catch (error) {
       console.error("Error assigning task to date:", error);
-      new window.Notice("Failed to schedule task");
+      new import_obsidian.Notice("Failed to schedule task");
     }
   }
 };

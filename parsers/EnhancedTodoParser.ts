@@ -91,7 +91,7 @@ export class EnhancedTodoParser {
     todo.tags = basicData.tags;
     
     // Parse due date if present
-    const dueDate = this.extractDueDate(line);
+    const dueDate = await this.extractDueDate(line);
     if (dueDate) {
       todo.assignToDate(dueDate);
     }
@@ -168,16 +168,20 @@ export class EnhancedTodoParser {
   }
 
   // Extract due date from content
-  private extractDueDate(content: string): any | null {
+  private async extractDueDate(content: string): Promise<any | null> {
     // Try to match date tags based on format
     const dateTagPattern = this.dateTagFormat.replace('%date%', '([\\d\\-\\/]+)');
     const dateMatch = content.match(new RegExp(dateTagPattern));
     
     if (dateMatch) {
       try {
-        // Parse date using luxon (would need to import DateTime)
-        // For now, return a simple date string
-        return dateMatch[1];
+        // Import DateTime from luxon for proper date handling
+        const { DateTime } = await import('luxon');
+        const dateStr = dateMatch[1];
+        const luxonDate = DateTime.fromISO(dateStr);
+        if (luxonDate.isValid) {
+          return luxonDate;
+        }
       } catch (error) {
         console.warn('Failed to parse date:', dateMatch[1]);
       }
@@ -186,7 +190,15 @@ export class EnhancedTodoParser {
     // Also try to find standalone dates
     const standaloneDate = content.match(/\b(\d{4}-\d{2}-\d{2})\b/);
     if (standaloneDate) {
-      return standaloneDate[1];
+      try {
+        const { DateTime } = await import('luxon');
+        const luxonDate = DateTime.fromISO(standaloneDate[1]);
+        if (luxonDate.isValid) {
+          return luxonDate;
+        }
+      } catch (error) {
+        console.warn('Failed to parse standalone date:', standaloneDate[1]);
+      }
     }
     
     return null;
